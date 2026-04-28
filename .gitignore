@@ -1,0 +1,5 @@
+node_modules/
+.env
+maps-backend/gps.db
+maps-backend/gps.db-shm
+maps-backend/gps.db-wal
