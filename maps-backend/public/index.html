@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GPS Bomberos – Segunda Compañía Pailahueque</title>
+  <meta name="description" content="Sistema GPS en tiempo real para carros de bomberos Segunda Compañía Pailahueque" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+      --bg-900: #0a0d14;
+      --bg-800: #111520;
+      --bg-700: #181d2e;
+      --bg-600: #1e2438;
+      --accent: #f97316;
+      --accent-dim: #c2530e;
+      --accent-glow: rgba(249,115,22,0.25);
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+      --blue: #3b82f6;
+      --text: #e2e8f0;
+      --text-muted: #64748b;
+      --border: #1e2438;
+      --sidebar-w: 320px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg-900); color: var(--text); overflow: hidden; height: 100vh; }
+
+    /* ============================
+       LOGIN PAGE
+    ============================ */
+    #login-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: var(--bg-900);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Animated background elements */
+    #login-page::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 70%);
+      top: -200px; left: -200px;
+      border-radius: 50%;
+      animation: float1 8s ease-in-out infinite;
+    }
+    #login-page::after {
+      content: '';
+      position: absolute;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%);
+      bottom: -150px; right: -150px;
+      border-radius: 50%;
+      animation: float2 10s ease-in-out infinite;
+    }
+    @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,30px)} }
+    @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,-40px)} }
+
+    .login-card {
+      background: var(--bg-800);
+      border: 1px solid rgba(249,115,22,0.2);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 420px;
+      max-width: 94vw;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 0 60px rgba(249,115,22,0.08), 0 25px 60px rgba(0,0,0,0.5);
+      animation: cardIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes cardIn { from{opacity:0;transform:translateY(30px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .login-logo .icon {
+      font-size: 3.5rem;
+      display: block;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 4px 12px rgba(249,115,22,0.4));
+    }
+    .login-logo h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+    .login-logo p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .login-logo .system-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(249,115,22,0.12);
+      border: 1px solid rgba(249,115,22,0.25);
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-top: 10px;
+    }
+
+    .login-form { display: flex; flex-direction: column; gap: 14px; }
+
+    .form-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+    }
+    .form-field { display: flex; flex-direction: column; }
+    .form-input {
+      background: var(--bg-700);
+      border: 1.5px solid var(--border);
+      color: var(--text);
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .form-input::placeholder { color: var(--text-muted); }
+
+    .login-btn {
+      margin-top: 4px;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(249,115,22,0.35); }
+    .login-btn:active { transform: translateY(0); }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .login-btn .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .login-btn.loading .spinner { display: block; }
+    @keyframes spin { to{transform:translateY(-50%) rotate(360deg)} }
+
+    .login-error {
+      display: none;
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.35);
+      color: #fca5a5;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      text-align: center;
+    }
+    .login-error.show { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .login-footer span { color: var(--accent); }
+
+    /* ============================
+       APP PAGE (after login)
+    ============================ */
+    #app-page {
+      display: none;
+      height: 100vh;
+      flex-direction: row;
+    }
+    #app-page.visible { display: flex; }
+
+    /* SIDEBAR */
+    #sidebar {
+      width: var(--sidebar-w);
+      background: var(--bg-800);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      padding: 18px 20px;
+      background: linear-gradient(135deg, var(--bg-700), var(--bg-800));
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-header h1 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-header p { font-size: 0.72rem; color: var(--text-muted); margin-top: 3px; }
+
+    .badge-ws {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.65rem;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    .badge-ws.connected { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .badge-ws.disconnected { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* USER BAR */
+    .user-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--bg-700);
+      border-bottom: 1px solid var(--border);
+    }
+    .user-bar-left { display: flex; align-items: center; gap: 10px; }
+    .user-avatar {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 700;
+    }
+    .user-name { font-size: 0.85rem; font-weight: 600; }
+    .role-badge {
+      font-size: 0.62rem;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 700;
+      background: rgba(249,115,22,0.2);
+      color: var(--accent);
+      border: 1px solid rgba(249,115,22,0.3);
+    }
+    .logout-btn {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.25);
+      color: var(--red);
+      padding: 5px 10px;
+      border-radius: 7px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .logout-btn:hover { background: rgba(239,68,68,0.2); }
+
+    /* SECTION */
+    .section { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+    .section-title {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* BUTTONS */
+    .btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: var(--accent); color: white; width: 100%; padding: 11px; }
+    .btn-primary:hover { background: var(--accent-dim); }
+    .btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+    .btn-success { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .btn-success:hover { background: rgba(34,197,94,0.25); }
+    .btn-sm { padding: 5px 10px; font-size: 0.72rem; }
+
+    /* VEHICLES */
+    #vehicles-list { display: flex; flex-direction: column; gap: 8px; }
+    .vehicle-card {
+      background: var(--bg-700);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      transition: border-color 0.2s;
+    }
+    .vehicle-card:hover { border-color: rgba(249,115,22,0.4); }
+    .vehicle-card.inactive { opacity: 0.5; }
+    .vehicle-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .vehicle-name { font-size: 0.88rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .tracker-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+    .tracker-dot.off { background: var(--text-muted); animation: none; }
+    .vehicle-coords { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 6px; }
+    .vehicle-time { font-size: 0.67rem; color: var(--text-muted); }
+    .vehicle-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* ADD VEHICLE FORM */
+    #add-vehicle-form { display: none; margin-top: 12px; }
+    #add-vehicle-form.open { display: block; }
+    .add-form-fields { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+    .add-form-fields input {
+      background: var(--bg-700);
+      border: 1.5px solid var(--border);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .add-form-fields input:focus { border-color: var(--accent); }
+    .add-form-fields input::placeholder { color: var(--text-muted); }
+
+    /* MAP */
+    #map-container { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; }
+    #map-controls {
+      position: absolute;
+      top: 16px; right: 16px;
+      z-index: 400;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .map-btn {
+      background: var(--bg-800);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .map-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .map-btn.active { background: rgba(249,115,22,0.15); border-color: var(--accent); color: var(--accent); }
+
+    /* LAYER SWITCHER */
+    #layer-switcher {
+      position: absolute;
+      bottom: 40px;
+      left: 16px;
+      z-index: 400;
+      display: flex;
+      gap: 6px;
+    }
+    .layer-btn {
+      background: var(--bg-800);
+      border: 1.5px solid var(--border);
+      color: var(--text-muted);
+      padding: 7px 13px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+    }
+    .layer-btn:hover { border-color: var(--accent); color: var(--text); }
+    .layer-btn.active { background: rgba(249,115,22,0.15); border-color: var(--accent); color: var(--accent); }
+
+    /* TRAIL BUTTON per vehicle */
+    .btn-trail { background: transparent; color: var(--text-muted); border: 1px dashed var(--border); }
+    .btn-trail:hover { background: rgba(255,255,255,0.05); color: var(--text); border-style: solid; }
+    .btn-trail.on { background: #3b82f6; color: white; border: 1px solid #2563eb; font-weight: 700; box-shadow: 0 0 10px rgba(59,130,246,0.5); }
+
+    /* TOAST */
+    #toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast-msg {
+      background: var(--bg-700);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      animation: slideIn 0.3s ease;
+      max-width: 300px;
+    }
+    .toast-msg.success { border-color: var(--green); }
+    .toast-msg.error { border-color: var(--red); }
+    @keyframes slideIn { from{transform:translateX(20px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+    /* HISTORY MODAL */
+    #history-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+    }
+    #history-modal.open { display: flex; }
+    .modal-box {
+      background: var(--bg-800);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: 360px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal-box h3 { font-size: 1rem; margin-bottom: 16px; color: var(--accent); }
+    .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+
+    /* Leaflet dark */
+    .leaflet-container { background: #1a1a2e; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* Info footer */
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+    .sidebar-footer span { color: var(--accent); }
+    /* ============================
+       DENIED PAGE
+    ============================ */
+    #denied-page {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #050505;
+      position: relative;
+      overflow: hidden;
+    }
+    #denied-page::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 8px;
+      background: repeating-linear-gradient(45deg, #dc2626, #dc2626 15px, #000 15px, #000 30px);
+    }
+    #denied-page::after {
+      content: '';
+      position: absolute;
+      left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 60vw; height: 60vw;
+      background: radial-gradient(circle, rgba(220,38,38,0.1) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .denied-card {
+      background: var(--bg-800);
+      border: 1px solid rgba(220,38,38,0.3);
+      border-radius: 20px;
+      padding: 50px 40px;
+      width: 440px;
+      max-width: 92vw;
+      text-align: center;
+      position: relative;
+      z-index: 10;
+      box-shadow: 0 0 60px rgba(220,38,38,0.15), 0 20px 40px rgba(0,0,0,0.6);
+      animation: shakeDeny 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes shakeDeny {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+      40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+    .denied-icon-wrap {
+      width: 90px; height: 90px;
+      margin: 0 auto 24px;
+      background: rgba(220,38,38,0.1);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid rgba(220,38,38,0.2);
+      box-shadow: inset 0 0 20px rgba(220,38,38,0.2);
+    }
+    .denied-icon-wrap .icon {
+      font-size: 3rem; margin: 0; display: block;
+      animation: pulseAlert 2s infinite ease-in-out;
+    }
+    @keyframes pulseAlert {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(220,38,38,0)); }
+      50% { transform: scale(1.1); filter: drop-shadow(0 0 10px rgba(220,38,38,0.8)); }
+    }
+    .denied-card h2 { 
+      color: #fca5a5; font-weight: 800; font-size: 1.6rem; 
+      text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; 
+    }
+    .denied-card p { 
+      color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 24px; 
+    }
+    .denied-user-box {
+      background: rgba(0,0,0,0.3);
+      border: 1px dashed rgba(220,38,38,0.4);
+      padding: 12px;
+      border-radius: 10px;
+      font-family: monospace;
+      color: #f87171;
+      margin-bottom: 24px;
+      font-size: 0.85rem;
+    }
+    #denied-back-btn {
+      background: linear-gradient(135deg, #dc2626, #991b1b);
+      border: none;
+      width: 100%;
+      padding: 14px;
+      font-size: 0.95rem;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 15px rgba(220,38,38,0.3);
+    }
+    #denied-back-btn:hover { box-shadow: 0 6px 20px rgba(220,38,38,0.5); transform: translateY(-2px); }
+  </style>
+</head>
+<body>
+
+<!-- ======================================
+     DENIED PAGE
+====================================== -->
+<div id="denied-page">
+  <div class="denied-card">
+    <div class="denied-icon-wrap"><span class="icon">⛔</span></div>
+    <h2>Acceso Restringido</h2>
+    <p>El sistema central de autenticación ZONA 0 ha bloqueado tu ingreso a esta aplicación de red externa.</p>
+    <div class="denied-user-box">
+      IDENTIFICACIÓN: <span id="denied-username">--</span><br/>
+      ESTADO: SIN ACREDITACIÓN URL
+    </div>
+    <button class="btn btn-primary" id="denied-back-btn">VOLVER A DASHBOARD ZONA 0</button>
+    <button class="btn btn-secondary" id="denied-retry-btn" onclick="logout(); window.location.reload();" style="width:100%; margin-top:10px; padding:14px; background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff; font-weight:bold; letter-spacing:1px; border-radius:8px; cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">VOLVER A INTENTARLO</button>
+  </div>
+</div>
+
+<!-- ======================================
+     LOGIN PAGE
+====================================== -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="icon">🚒</span>
+      <h1>GPS Bomberos</h1>
+      <p>Segunda Compañía Pailahueque</p>
+      <div class="system-badge">📡 Sistema GPS en tiempo real</div>
+    </div>
+
+    <div class="login-form">
+      <div class="form-field">
+        <label class="form-label" for="login-user">Usuario</label>
+        <input class="form-input" type="text" id="login-user" placeholder="Tu usuario" autocomplete="username" />
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="login-pass">Contraseña</label>
+        <input class="form-input" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <div class="login-error" id="login-error"></div>
+      <button class="login-btn" id="login-btn" onclick="doLogin()">
+        Iniciar Sesión
+        <div class="spinner"></div>
+      </button>
+    </div>
+
+    <div class="login-footer">
+      Acceso autorizado · <span>maps.segundapailahueque.cl</span>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================
+     APP PAGE (visible after login)
+====================================== -->
+<div id="app-page">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <h1>🚒 GPS Bomberos</h1>
+      <p>Segunda Compañía Pailahueque</p>
+      <div id="ws-status" class="badge-ws disconnected">
+        <span class="dot"></span>
+        <span id="ws-status-text">Desconectado</span>
+      </div>
+    </div>
+
+    <!-- USER BAR -->
+    <div class="user-bar">
+      <div class="user-bar-left">
+        <div class="user-avatar" id="user-avatar">—</div>
+        <div>
+          <div class="user-name" id="display-username">—</div>
+          <span class="role-badge" id="display-role">—</span>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Salir</button>
+    </div>
+
+    <!-- VEHICLES -->
+    <div class="section">
+      <div class="section-title">
+        <span>Carros</span>
+        <button class="btn btn-sm btn-success" id="add-btn" style="display:none" onclick="toggleAddForm()">+ Agregar</button>
+      </div>
+
+      <div id="add-vehicle-form">
+        <div class="add-form-fields">
+          <input type="text" id="new-vehicle-id" placeholder="ID del carro (ej: C1)" />
+          <input type="text" id="new-vehicle-name" placeholder="Nombre (ej: Escala 1)" />
+          <input type="text" id="new-vehicle-icon" placeholder="Ícono/texto (ej: 🚒 o C1)" />
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="addVehicle()">✔ Crear carro</button>
+      </div>
+
+      <div id="vehicles-list" style="margin-top:8px">
+        <p style="color:var(--text-muted);font-size:0.82rem">Cargando carros...</p>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <p>⚡ Actualización en tiempo real via WebSocket</p>
+      <p>📍 Datos GPS recibidos del ESP32</p>
+      <p style="margin-top:6px"><span>maps.segundapailahueque.cl</span></p>
+    </div>
+  </aside>
+
+  <!-- MAP -->
+  <div id="map-container">
+    <div id="map"></div>
+
+    <!-- Top-right controls -->
+    <div id="map-controls">
+      <button class="map-btn active" id="toggle-all-btn" onclick="toggleAllVehicles()">
+        👁 Mostrar todos
+      </button>
+      <button class="map-btn" onclick="fitAllMarkers()">
+        🎯 Centrar mapa
+      </button>
+    </div>
+
+    <!-- Bottom-left layer switcher -->
+    <div id="layer-switcher">
+      <button class="layer-btn active" id="layer-street" onclick="setLayer('street')">🗺 Calles</button>
+      <button class="layer-btn" id="layer-satellite" onclick="setLayer('satellite')">🛰 Satélite</button>
+      <button class="layer-btn" id="layer-terrain" onclick="setLayer('terrain')">⛰ Terreno</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div id="history-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:500; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+  <div class="modal-box" style="background:#111520; border:1px solid #1e2438; border-radius:16px; padding:24px; width:460px; max-width:95vw; max-height:85vh; overflow-y:auto; overflow-x:hidden; box-shadow:0 15px 50px rgba(0,0,0,0.8);">
+    <h3 style="font-size:1.15rem; margin-bottom:18px; color:var(--accent); display:flex; align-items:center; gap:8px;">
+      📍 <span style="color:#e2e8f0; font-weight:700;">Historial –</span> <span id="history-vehicle-name" style="color:var(--accent);">—</span>
+    </h3>
+    
+    <div style="display:flex; gap:12px; margin-bottom:16px;">
+      <div style="flex:1;">
+        <label style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Desde</label>
+        <input type="datetime-local" id="history-from" style="width:100%; margin-top:6px; background:#0a0d14; border:1.5px solid #1e2438; color:#e2e8f0; padding:10px; border-radius:8px; font-family:inherit; outline:none; font-size:0.85rem; transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='#1e2438'" />
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Hasta</label>
+        <input type="datetime-local" id="history-to" style="width:100%; margin-top:6px; background:#0a0d14; border:1.5px solid #1e2438; color:#e2e8f0; padding:10px; border-radius:8px; font-family:inherit; outline:none; font-size:0.85rem; transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='#1e2438'" />
+      </div>
+    </div>
+
+    <div class="modal-actions" style="display:flex; gap:8px; margin-bottom:20px;">
+      <button class="btn btn-primary" style="flex:1; padding:12px; font-weight:700; box-shadow:0 4px 12px rgba(249,115,22,0.3);" onclick="loadHistory()">🔍 Buscar</button>
+      <button class="btn btn-danger" style="padding:12px 16px;" onclick="clearHistory()">Limpiar</button>
+      <button class="btn" style="background:#1e2438; border:1px solid #334155; padding:12px 16px;" onclick="closeHistoryModal()">Cerrar</button>
+    </div>
+
+    <div style="border-top:1px solid #1e2438; padding-top:16px;">
+      <h4 style="font-size:0.8rem; font-weight:600; color:var(--text-muted); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">Rutas archivadas</h4>
+      <div id="history-summary-list" style="display:flex; flex-direction:column; gap:8px; max-height:160px; overflow-y:auto; padding-right:4px;">
+        <p style="font-size:0.8rem; color:var(--text-muted); font-style:italic;">Cargando...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="edit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:500; align-items:center; justify-content:center;">
+  <div class="modal-box">
+    <h3>✏️ Editar Carro</h3>
+    <input type="hidden" id="edit-vehicle-id" />
+    <div style="margin-bottom:8px">
+      <label style="font-size:0.8rem;color:var(--text-muted)">Nombre:</label>
+      <input type="text" id="edit-vehicle-name" style="width:100%;margin-top:4px;background:var(--bg-700);border:1.5px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-family:inherit;outline:none;" />
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:0.8rem;color:var(--text-muted)">Ícono / Emoji (o texto descriptivo):</label>
+      <input type="text" id="edit-vehicle-icon" style="width:100%;margin-top:4px;background:var(--bg-700);border:1.5px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-family:inherit;outline:none;" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveVehicleEdit()">Guardar cambios</button>
+      <button class="btn" style="background:var(--bg-700);border:1px solid var(--border)" onclick="document.getElementById('edit-modal').style.display='none'">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API_URL = 'https://maps.segundapailahueque.cl';
+  const INTRANET_URL = 'https://tv.segundapailahueque.cl';
+  const WS_URL = 'wss://maps.segundapailahueque.cl';
+
+  let token = null;
+  let currentUser = null;
+  let ws = null;
+  let map = null;
+  let mapInitialized = false;
+  let markers     = {};           // { vehicleId: L.marker }
+  let polylines   = {};           // { vehicleId: L.polyline } — historial
+  let trailLines  = {};           // { vehicleId: L.polyline } — estela en vivo
+  let trailPoints = {};           // { vehicleId: [[lat,lng], ...] }
+  let trailEnabled = new Set();   // vehicleIds con estela activa
+  let vehicles = {};
+  let hiddenVehicles = new Set();
+  let historyVehicleId = null;
+  let allVisible = true;
+
+  // Tile layers
+  const TILE_LAYERS = {
+    street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxNativeZoom: 19,
+      maxZoom: 22,
+    }),
+    satellite: L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=es&x={x}&y={y}&z={z}', {
+      attribution: '© Google',
+      maxNativeZoom: 20,
+      maxZoom: 22,
+    }),
+    terrain: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenTopoMap',
+      maxNativeZoom: 17,
+      maxZoom: 22,
+    }),
+  };
+  let currentLayer = 'street';
+
+  // ---- LOGIN PAGE ----
+  document.getElementById('login-pass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+  document.getElementById('login-user').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('login-pass').focus();
+  });
+
+  function showLoginError(msg) {
+    const el = document.getElementById('login-error');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function hideLoginError() {
+    document.getElementById('login-error').classList.remove('show');
+  }
+
+  async function doLogin() {
+    const username = document.getElementById('login-user').value.trim();
+    const password = document.getElementById('login-pass').value;
+    hideLoginError();
+
+    if (!username || !password) {
+      showLoginError('Por favor completa usuario y contraseña.');
+      return;
+    }
+
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.querySelector('.spinner').style.display = 'block';
+
+    try {
+      const res = await fetch(`${INTRANET_URL}/api/auth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.token) {
+        showLoginError(data.error || 'Credenciales inválidas');
+        return;
+      }
+
+      token = data.token;
+      currentUser = {
+        username: data.user.username || data.user.name,
+        name: data.user.name,
+        rol: data.user.rol,
+        permisos: data.user.permisos || [],
+        apps: data.user.apps || [],
+      };
+
+      localStorage.setItem('gps_token', token);
+      localStorage.setItem('gps_user', JSON.stringify(currentUser));
+      enterApp();
+
+    } catch (err) {
+      console.error('[doLogin]', err);
+      showLoginError('Error de conexión con el servidor. Intenta nuevamente.');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }
+  }
+
+  function doLogout() {
+    token = null;
+    currentUser = null;
+    ws?.close();
+    ws = null;
+    localStorage.removeItem('gps_token');
+    localStorage.removeItem('gps_user');
+
+    // Reset state
+    vehicles = {};
+    markers = {};
+    polylines = {};
+    hiddenVehicles = new Set();
+    allVisible = true;
+
+    document.getElementById('app-page').classList.remove('visible');
+    document.getElementById('login-page').style.display = 'flex';
+    document.getElementById('login-pass').value = '';
+    hideLoginError();
+  }
+
+  function setupAccessDenied(user) {
+    if (!user) return false;
+    if (user.rol === 'superadmin') return true;
+    const hasApp = Array.isArray(user.apps) && user.apps.some(a => { const u = typeof a === 'string' ? a : a.url; return u && (u.includes('maps.segundapailahueque.cl') || u.includes('localhost:4000')); });
+    const hasPerm = Array.isArray(user.permisos) && (user.permisos.includes('ver_mapas') || user.permisos.includes('gestionar_mapas'));
+    return hasApp || hasPerm;
+  }
+
+  function enterApp() {
+    if (!setupAccessDenied(currentUser)) {
+      document.getElementById('login-page').style.display = 'none';
+      document.getElementById('app-page').classList.remove('visible');
+      document.getElementById('denied-page').style.display = 'flex';
+      
+      const usernameDisplay = currentUser.name || currentUser.username || 'USUARIO DESCONOCIDO';
+      document.getElementById('denied-username').textContent = usernameDisplay.toUpperCase();
+
+      const btn = document.getElementById('denied-back-btn');
+      if (currentUser.rol === 'viewer' || currentUser.rol === 'kiosk') {
+        btn.innerText = 'VOLVER A VISTA TV';
+        btn.onclick = () => window.location.href = INTRANET_URL + '/tv';
+      } else {
+        btn.innerText = 'VOLVER A DASHBOARD ZONA 0';
+        btn.onclick = () => window.location.href = INTRANET_URL + '/dashboard';
+      }
+      return;
+    }
+
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app-page').classList.add('visible');
+
+    // Init map only once
+    if (!mapInitialized) {
+      initMap();
+      mapInitialized = true;
+    }
+
+    // Setup user display
+    const initials = (currentUser.name || currentUser.username || '?')
+      .split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+    document.getElementById('user-avatar').textContent = initials;
+    document.getElementById('display-username').textContent = currentUser.name || currentUser.username;
+    document.getElementById('display-role').textContent = currentUser.rol;
+
+    // Show add button if can write
+    const canWrite = currentUser.rol === 'superadmin' ||
+                     currentUser.permisos?.includes('gestionar_mapas');
+    document.getElementById('add-btn').style.display = canWrite ? 'block' : 'none';
+
+    loadVehicles();
+    loadLatestPositions();
+    connectWS();
+  }
+
+  // ---- AUTO LOGIN ----
+  async function tryAutoLogin() {
+    const savedToken = localStorage.getItem('gps_token');
+    const savedUser  = localStorage.getItem('gps_user');
+    if (!savedToken || !savedUser) return;
+
+    try {
+      const res = await fetch(`${API_URL}/vehicles`, {
+        headers: { Authorization: `Bearer ${savedToken}` },
+      });
+      if (res.ok) {
+        token = savedToken;
+        currentUser = JSON.parse(savedUser);
+        enterApp();
+      } else {
+        localStorage.removeItem('gps_token');
+        localStorage.removeItem('gps_user');
+      }
+    } catch {}
+  }
+
+  // ---- MAP ----
+  function initMap() {
+    map = L.map('map', { zoomControl: false }).setView([-38.0, -72.5], 13);
+    TILE_LAYERS['street'].addTo(map);
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+  }
+
+  // ---- WEBSOCKET ----
+  function connectWS() {
+    if (ws) ws.close();
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => setWsStatus(true);
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'position') updateVehicleMarker(msg.data);
+      } catch {}
+    };
+    ws.onclose = () => {
+      setWsStatus(false);
+      if (token) setTimeout(connectWS, 3000); // Reconectar solo si hay sesión
+    };
+    ws.onerror = () => setWsStatus(false);
+  }
+
+  function setWsStatus(connected) {
+    const el  = document.getElementById('ws-status');
+    const txt = document.getElementById('ws-status-text');
+    el.className = `badge-ws ${connected ? 'connected' : 'disconnected'}`;
+    txt.textContent = connected ? 'Tiempo real' : 'Desconectado';
+  }
+
+  // ---- VEHICLES ----
+  async function loadVehicles() {
+    try {
+      const res = await fetch(`${API_URL}/vehicles`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        console.error('[loadVehicles]', res.status, d);
+        toast(`Error al cargar vehículos: ${d.error || res.status}`, 'error');
+        return;
+      }
+      const list = await res.json();
+      list.forEach(v => { vehicles[v.vehicleId] = v; });
+      renderVehicleList();
+    } catch (err) {
+      console.error('[loadVehicles] fetch error:', err);
+      toast('Error de red al cargar vehículos', 'error');
+    }
+  }
+
+  async function loadLatestPositions() {
+    try {
+      const res = await fetch(`${API_URL}/gps/latest`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const list = await res.json();
+      list.forEach(item => {
+        if (item.position) updateVehicleMarker(item.position);
+      });
+    } catch {}
+  }
+
+  function renderVehicleList() {
+    const container = document.getElementById('vehicles-list');
+    const ids = Object.keys(vehicles);
+    if (!ids.length) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem">No hay carros registrados</p>';
+      return;
+    }
+
+    const canWrite = currentUser?.rol === 'superadmin' ||
+                     currentUser?.permisos?.includes('gestionar_mapas');
+
+    container.innerHTML = ids.map(id => {
+      const v = vehicles[id];
+      const hidden = hiddenVehicles.has(id);
+      return `
+        <div class="vehicle-card ${!v.trackingEnabled ? 'inactive' : ''}" id="card-${id}">
+          <div class="vehicle-top">
+            <div class="vehicle-name">
+              <span class="tracker-dot ${!v.trackingEnabled ? 'off' : ''}"></span>
+              ${v.name || v.vehicleId}
+            </div>
+          </div>
+          <div class="vehicle-coords" id="coords-${id}">Sin datos GPS</div>
+          <div class="vehicle-time" id="time-${id}">—</div>
+          <div class="vehicle-actions">
+            <button class="btn btn-sm" style="background:var(--bg-600);border:1px solid var(--border)" onclick="toggleVehicleVisibility('${id}')">
+              ${hidden ? '👁 Mostrar' : '🙈 Ocultar'}
+            </button>
+            <button class="btn btn-sm btn-trail ${trailEnabled.has(id) ? 'on' : ''}" id="trail-btn-${id}" onclick="toggleTrail('${id}')">
+              ${trailEnabled.has(id) ? '✨ ESTELA ACTIVA' : '〰 Activar Estela'}
+            </button>
+            <button class="btn btn-sm" style="background:var(--bg-600);border:1px solid var(--border)" onclick="openHistoryModal('${id}')">
+              📍 Historial
+            </button>
+            ${canWrite ? `
+            <button class="btn btn-sm ${v.trackingEnabled ? 'btn-danger' : 'btn-success'}" onclick="toggleTracking('${id}')">
+              ${v.trackingEnabled ? '⏸ Pausar' : '▶ Activar'}
+            </button>
+            <button class="btn btn-sm" style="background:#475569;border:none;color:white;" onclick="editVehicleName('${id}')">✏️ Editar</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteVehicle('${id}')">🗑 Eliminar</button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function addVehicle() {
+    const vehicleId = document.getElementById('new-vehicle-id').value.trim();
+    const name = document.getElementById('new-vehicle-name').value.trim();
+    const icon = document.getElementById('new-vehicle-icon').value.trim();
+    if (!vehicleId) return toast('El ID del carro es requerido', 'error');
+
+    try {
+      const res = await fetch(`${API_URL}/vehicles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ vehicleId, name, icon }),
+      });
+
+      const data = await res.json();
+      console.log('[addVehicle]', res.status, data);
+
+      if (!res.ok) {
+        toast(data.error || `Error ${res.status} al crear el carro`, 'error');
+        return;
+      }
+
+      vehicles[data.vehicleId] = data;
+      renderVehicleList();
+      if (markers[data.vehicleId]) {
+        markers[data.vehicleId].setIcon(createTruckIcon(data.icon));
+      }
+      document.getElementById('new-vehicle-id').value = '';
+      document.getElementById('new-vehicle-name').value = '';
+      document.getElementById('new-vehicle-icon').value = '';
+      document.getElementById('add-vehicle-form').classList.remove('open');
+      toast(`✅ Carro "${data.name}" creado correctamente`, 'success');
+    } catch (err) {
+      console.error('[addVehicle] fetch error:', err);
+      toast('Error de red al crear el vehículo', 'error');
+    }
+  }
+
+  async function toggleTracking(id) {
+    try {
+      const res = await fetch(`${API_URL}/vehicles/${id}/toggle`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error || 'Error al cambiar tracking', 'error'); return; }
+      vehicles[id] = data;
+      renderVehicleList();
+      toast(`Tracking ${data.trackingEnabled ? 'activado' : 'pausado'} – ${data.name}`, 'success');
+    } catch {
+      toast('Error de red', 'error');
+    }
+  }
+
+  function editVehicleName(id) {
+    const v = vehicles[id];
+    document.getElementById('edit-vehicle-id').value = id;
+    document.getElementById('edit-vehicle-name').value = v.name || '';
+    document.getElementById('edit-vehicle-icon').value = v.icon || '🚒';
+    document.getElementById('edit-modal').style.display = 'flex';
+  }
+
+  async function saveVehicleEdit() {
+    const id = document.getElementById('edit-vehicle-id').value;
+    const newName = document.getElementById('edit-vehicle-name').value.trim();
+    const newIcon = document.getElementById('edit-vehicle-icon').value.trim();
+    if (!newName) { toast('El nombre es requerido', 'error'); return; }
+    
+    try {
+      const res = await fetch(`${API_URL}/vehicles/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: newName, icon: newIcon })
+      });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error || 'Error al editar', 'error'); return; }
+      
+      vehicles[id] = data;
+      renderVehicleList();
+      if (markers[id]) {
+        markers[id].setIcon(createTruckIcon(data.icon));
+        if (markers[id].getPopup()) markers[id].getPopup().update();
+      }
+      document.getElementById('edit-modal').style.display = 'none';
+      toast(`Carro actualizado a "${data.name}"`, 'success');
+    } catch {
+      toast('Error de red', 'error');
+    }
+  }
+
+  async function deleteVehicle(id) {
+    if (!confirm(`¿Estás completamente seguro de eliminar el carro "${vehicles[id]?.name || id}" y todo su registro asociado?`)) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/vehicles/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        toast(d.error || 'Error al eliminar', 'error'); 
+        return; 
+      }
+      delete vehicles[id];
+      if (markers[id]) map.removeLayer(markers[id]);
+      if (polylines[id]) map.removeLayer(polylines[id]);
+      if (trailLines[id]) map.removeLayer(trailLines[id]);
+      delete markers[id];
+      delete trailLines[id];
+      trailEnabled.delete(id);
+      hiddenVehicles.delete(id);
+      renderVehicleList();
+      toast(`Carro eliminado correctamente`, 'success');
+    } catch {
+      toast('Error de red', 'error');
+    }
+  }
+
+  function toggleAddForm() {
+    document.getElementById('add-vehicle-form').classList.toggle('open');
+  }
+
+  // ---- LAYER SWITCHER ----
+  function setLayer(name) {
+    if (!map || name === currentLayer) return;
+    map.removeLayer(TILE_LAYERS[currentLayer]);
+    TILE_LAYERS[name].addTo(map);
+    currentLayer = name;
+    document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`layer-${name}`)?.classList.add('active');
+  }
+
+  // ---- MAP MARKERS ----
+  function createTruckIcon(iconText) {
+    const text = iconText || '🚒';
+    const isText = [...text].length > 2; // rudimentary check if more than 2 characters (not just an emoji)
+    const fontSize = isText ? '12px' : '26px';
+    const bg = isText ? 'background:var(--bg-800);border:1.5px solid var(--accent);border-radius:6px;color:white;font-weight:700;padding:2px 8px;' : '';
+    
+    return L.divIcon({
+      html: `<div style="font-size:${fontSize};${bg}filter:drop-shadow(0 2px 6px rgba(249,115,22,0.6));white-space:nowrap;">${text}</div>`,
+      className: '',
+      iconSize: isText ? [null, null] : [32, 32],
+      iconAnchor: isText ? [20, 16] : [16, 16],
+      popupAnchor: [0, -20],
+    });
+  }
+
+  // ---- TRAIL ----
+  // Colores por vehículo para diferenciar estelas
+  const TRAIL_COLORS = ['#3b82f6','#a855f7','#22c55e','#f59e0b','#ec4899','#06b6d4'];
+  let trailColorIndex = {};
+  let colorCounter = 0;
+
+  function getTrailColor(id) {
+    if (trailColorIndex[id] === undefined) {
+      trailColorIndex[id] = colorCounter % TRAIL_COLORS.length;
+      colorCounter++;
+    }
+    return TRAIL_COLORS[trailColorIndex[id]];
+  }
+
+  function toggleTrail(id) {
+    if (trailEnabled.has(id)) {
+      // Apagar estela — quitar polyline pero conservar puntos
+      trailEnabled.delete(id);
+      if (trailLines[id]) { map.removeLayer(trailLines[id]); delete trailLines[id]; }
+    } else {
+      // Encender estela
+      trailEnabled.add(id);
+      if (!trailPoints[id]) trailPoints[id] = [];
+      if (trailPoints[id].length > 1) {
+        trailLines[id] = L.polyline(trailPoints[id], {
+          color: getTrailColor(id), weight: 3, opacity: 0.75
+        }).addTo(map);
+      }
+    }
+    renderVehicleList();
+  }
+
+  function updateVehicleMarker(pos) {
+    const { vehicleId, lat, lng, alt, timestamp } = pos;
+    if (hiddenVehicles.has(vehicleId)) return;
+    const latlng = [lat, lng];
+    const v = vehicles[vehicleId] || {};
+
+    // Marker
+    if (markers[vehicleId]) {
+      markers[vehicleId].setLatLng(latlng);
+    } else {
+      const m = L.marker(latlng, { icon: createTruckIcon(v.icon) })
+        .addTo(map)
+        .bindPopup(() => buildPopupContent(vehicleId));
+      markers[vehicleId] = m;
+    }
+    markers[vehicleId].getPopup()?.update();
+
+    // Live trail
+    if (!trailPoints[vehicleId]) trailPoints[vehicleId] = [];
+    trailPoints[vehicleId].push([lat, lng]);
+
+    if (trailEnabled.has(vehicleId)) {
+      if (trailLines[vehicleId]) {
+        trailLines[vehicleId].addLatLng([lat, lng]);
+      } else if (trailPoints[vehicleId].length > 1) {
+        trailLines[vehicleId] = L.polyline(trailPoints[vehicleId], {
+          color: getTrailColor(vehicleId), weight: 3, opacity: 0.75
+        }).addTo(map);
+      }
+    }
+
+    const coordsEl = document.getElementById(`coords-${vehicleId}`);
+    const timeEl   = document.getElementById(`time-${vehicleId}`);
+    if (coordsEl) coordsEl.textContent = `Lat: ${lat.toFixed(5)}  Lng: ${lng.toFixed(5)}${alt ? `  Alt: ${alt}m` : ''}`;
+    if (timeEl)   timeEl.textContent   = timestamp ? new Date(timestamp).toLocaleTimeString('es-CL') : '—';
+  }
+
+  function buildPopupContent(vehicleId) {
+    const v  = vehicles[vehicleId];
+    const m  = markers[vehicleId];
+    const ll = m ? m.getLatLng() : null;
+    return `<div style="font-family:Inter,sans-serif;min-width:150px;padding:4px">
+      <strong style="color:#f97316;font-size:1.05rem;">🚒 ${v ? (v.name || vehicleId) : vehicleId}</strong>
+      <div style="margin-top:6px;font-size:0.85rem;color:#94a3b8;line-height:1.4;">
+        <b style="color:#e2e8f0">Lat:</b> ${ll ? ll.lat.toFixed(6) : '—'}<br>
+        <b style="color:#e2e8f0">Lng:</b> ${ll ? ll.lng.toFixed(6) : '—'}<br>
+        <span style="font-size:0.75rem;color:#64748b;display:block;margin-top:6px;border-top:1px solid #1e2438;padding-top:4px;">Haz clic de nuevo para cerrar</span>
+      </div>
+    </div>`;
+  }
+
+  function toggleVehicleVisibility(id) {
+    if (hiddenVehicles.has(id)) {
+      hiddenVehicles.delete(id);
+      if (markers[id])    map.addLayer(markers[id]);
+      if (polylines[id])  map.addLayer(polylines[id]);
+      if (trailLines[id] && trailEnabled.has(id)) map.addLayer(trailLines[id]);
+    } else {
+      hiddenVehicles.add(id);
+      if (markers[id])    map.removeLayer(markers[id]);
+      if (polylines[id])  map.removeLayer(polylines[id]);
+      if (trailLines[id]) map.removeLayer(trailLines[id]);
+    }
+    renderVehicleList();
+  }
+
+  function toggleAllVehicles() {
+    allVisible = !allVisible;
+    const btn = document.getElementById('toggle-all-btn');
+    if (allVisible) {
+      Object.keys(markers).forEach(id => { hiddenVehicles.delete(id); map.addLayer(markers[id]); });
+      btn.textContent = '👁 Mostrar todos';
+      btn.classList.add('active');
+    } else {
+      Object.keys(markers).forEach(id => { hiddenVehicles.add(id); map.removeLayer(markers[id]); });
+      btn.textContent = '🙈 Ocultar todos';
+      btn.classList.remove('active');
+    }
+    renderVehicleList();
+  }
+
+  function fitAllMarkers() {
+    const layers = Object.values(markers);
+    if (!layers.length) { toast('Sin vehículos en mapa', 'error'); return; }
+    map.fitBounds(L.featureGroup(layers).getBounds().pad(0.2));
+  }
+
+  // ---- HISTORY ----
+  async function openHistoryModal(id) {
+    historyVehicleId = id;
+    const v = vehicles[id];
+    document.getElementById('history-vehicle-name').textContent = v ? (v.name || id) : id;
+    
+    // Default: local time ISO string without seconds (start from today 00:00 to now)
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    
+    document.getElementById('history-from').value = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    document.getElementById('history-to').value = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    
+    document.getElementById('history-modal').style.display = 'flex'; // override class logic to inline style for clarity since we added it to HTML
+
+    // Cargar resumen
+    const summaryContainer = document.getElementById('history-summary-list');
+    summaryContainer.innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);font-style:italic;">Cargando rutas archivadas...</p>';
+    
+    try {
+      const res = await fetch(`${API_URL}/gps/history/${id}/summary`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const days = await res.json();
+      if (!days.length) {
+        summaryContainer.innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);padding:8px;background:var(--bg-700);border-radius:8px;border:1px dashed var(--border);">No hay historial para este vehículo.</p>';
+        return;
+      }
+      
+      summaryContainer.innerHTML = days.map((d) => `
+        <button class="btn" style="background:#1e2438; border:1px solid #334155; color:var(--text); font-size:0.85rem; text-align:left; padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; transition:all 0.2s;" 
+          onclick="loadHistoryByDate('${d.rawDate}')" onmouseover="this.style.borderColor='var(--accent)';this.style.background='rgba(249,115,22,0.1)'" onmouseout="this.style.borderColor='#334155';this.style.background='#1e2438'">
+          <span style="font-weight:600;">📅  -ruta ${d.dateStr}-</span>
+          <span style="font-size:0.7rem; font-weight:700; color:#cbd5e1; background:#0f172a; padding:3px 8px; border-radius:12px; border:1px solid #334155;">${d.count} pts</span>
+        </button>
+      `).join('');
+    } catch {
+      summaryContainer.innerHTML = '<p style="font-size:0.8rem;color:#ef4444">Error al cargar rutas</p>';
+    }
+  }
+
+  function closeHistoryModal() {
+    document.getElementById('history-modal').style.display = 'none';
+  }
+
+  function loadHistoryByDate(rawDate) {
+    const from = `${rawDate}T00:00:00`;
+    const to = `${rawDate}T23:59:59`;
+    document.getElementById('history-from').value = from;
+    document.getElementById('history-to').value = to;
+    loadHistory(false);
+  }
+
+  async function loadHistory(useLatest = false) {
+    let from, to;
+    if (useLatest) {
+      const now = new Date();
+      to = now.toISOString();
+      from = new Date(now.getTime() - 3600000 * 2).toISOString(); // last 2 hours
+    } else {
+      const fromEl = document.getElementById('history-from').value;
+      const toEl = document.getElementById('history-to').value;
+      if (!fromEl || !toEl) { toast('Selecciona ambas fechas', 'error'); return; }
+      
+      from = new Date(fromEl).toISOString();
+      to = new Date(toEl).toISOString();
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/gps/history/${historyVehicleId}?from=${from}&to=${to}&limit=2000`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const positions = await res.json();
+      if (!positions.length) { toast('Estadía sin movimientos', 'error'); return; }
+
+      clearHistory();
+      const coords = positions.map(p => [p.lat, p.lng]);
+      const pl = L.polyline(coords, { color: '#f97316', weight: 4, opacity: 0.9 }).addTo(map);
+      polylines[historyVehicleId] = pl;
+      map.fitBounds(pl.getBounds().pad(0.1));
+      toast(`${positions.length} puntos cargados al mapa`, 'success');
+      closeHistoryModal();
+    } catch {
+      toast('Error al cargar historial', 'error');
+    }
+  }
+
+  function clearHistory() {
+    if (polylines[historyVehicleId]) {
+      map.removeLayer(polylines[historyVehicleId]);
+      delete polylines[historyVehicleId];
+    }
+  }
+
+  // ---- TOAST ----
+  function toast(msg, type = 'info') {
+    const el = document.createElement('div');
+    el.className = `toast-msg ${type}`;
+    el.textContent = msg;
+    document.getElementById('toast').appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  }
+
+  // ---- INIT ----
+  tryAutoLogin();
+</script>
+</body>
+</html>

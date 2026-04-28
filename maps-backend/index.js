@@ -49,7 +49,7 @@ app.use(cors({
 app.use(express.json());
 
 // Serve GPS frontend static files (useful for local dev)
-const frontendPath = path.join(__dirname, '..', 'maps-frontend', 'public');
+const frontendPath = path.join(__dirname, 'public');
 app.use(express.static(frontendPath));
 
 // Routes
